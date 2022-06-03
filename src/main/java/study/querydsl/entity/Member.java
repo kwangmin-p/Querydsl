@@ -32,7 +32,7 @@ public class Member {
         this(username, age, null);
     }
 
-    public Member(String username, int age, Team tem){
+    public Member(String username, int age, Team team){
         this.username = username;
         this.age = age;
         if(team != null){
