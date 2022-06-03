@@ -1,5 +1,6 @@
 package study.querydsl;
 
+import com.querydsl.core.QueryResults;
 import com.querydsl.jpa.impl.JPAQueryFactory;
 import org.assertj.core.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
@@ -13,6 +14,8 @@ import study.querydsl.entity.Team;
 
 import javax.persistence.EntityManager;
 import javax.persistence.PersistenceContext;
+
+import java.util.List;
 
 import static study.querydsl.entity.QMember.member;
 
@@ -100,5 +103,30 @@ public class QuerydslBasicTest {
                 .fetchOne();
 
         Assertions.assertThat(findMember.getUsername()).isEqualTo("member1");
+    }
+
+    @Test
+    public void resultFetch(){
+        List<Member> fetch = queryFactory
+                .select(member)
+                .from(member)
+                .fetch();
+
+        Member fetchOne = queryFactory
+                .selectFrom(member)
+                .fetchOne(); //결과 없으면 null, 두건이상이면 NotUniqueResultException 발생
+
+        Member fetchFirst = queryFactory
+                .selectFrom(member)
+                .fetchFirst();//limit(1).fetch(1) 과 결과가 같다
+
+        QueryResults<Member> results = queryFactory
+                .selectFrom(member)
+                .fetchResults(); //fetchResults는 getTotal(개수), getResult(내용, 컨텐츠)을 제공한다. results.getTotal(); results.getResult(); < 페이징 처리 가능
+
+        long total = queryFactory
+                .select(member)
+                .fetchCount();
+
     }
 }
