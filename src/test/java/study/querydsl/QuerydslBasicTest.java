@@ -17,6 +17,7 @@ import javax.persistence.PersistenceContext;
 
 import java.util.List;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static study.querydsl.entity.QMember.member;
 
 @SpringBootTest
@@ -57,7 +58,7 @@ public class QuerydslBasicTest {
                 .setParameter("username", "member1")
                 .getSingleResult();
 
-        Assertions.assertThat(findMember.getUsername()).isEqualTo("member1");
+        assertThat(findMember.getUsername()).isEqualTo("member1");
     }
 
 //    1.Querydsl 은 컴파일 시점에 오류를 발견할 수 있다
@@ -74,7 +75,7 @@ public class QuerydslBasicTest {
                 .from(m)
                 .where(m.username.eq("member1")) //파라미터 바인딩
                 .fetchOne();
-        Assertions.assertThat(findMember.getUsername()).isEqualTo("member1");
+        assertThat(findMember.getUsername()).isEqualTo("member1");
     }
 
     @Test
@@ -88,7 +89,7 @@ public class QuerydslBasicTest {
                 )
                 .fetchOne();
 
-        Assertions.assertThat(findMember.getUsername()).isEqualTo("member1");
+        assertThat(findMember.getUsername()).isEqualTo("member1");
     }
 
     @Test
@@ -102,7 +103,7 @@ public class QuerydslBasicTest {
                 )
                 .fetchOne();
 
-        Assertions.assertThat(findMember.getUsername()).isEqualTo("member1");
+        assertThat(findMember.getUsername()).isEqualTo("member1");
     }
 
     @Test
@@ -153,8 +154,56 @@ public class QuerydslBasicTest {
         Member member6 = result.get(1);
         Member memberNull = result.get(2);
 
-        Assertions.assertThat(member5.getUsername()).isEqualTo("member5");
-        Assertions.assertThat(member6.getUsername()).isEqualTo("member6");
-        Assertions.assertThat(memberNull.getUsername()).isNull();
+        assertThat(member5.getUsername()).isEqualTo("member5");
+        assertThat(member6.getUsername()).isEqualTo("member6");
+        assertThat(memberNull.getUsername()).isNull();
+    }
+
+    @Test
+    public void paging1(){
+        List<Member> result = queryFactory
+                .selectFrom(member)
+                .orderBy(member.username.desc())
+                .offset(1) //0부터 시작이므로 1로 설정하면 1개를 건너뛴것것
+                .limit(2)
+                .fetch();
+
+        assertThat(result.size()).isEqualTo(2);
+   }
+
+    @Test
+    public void paging2(){
+        QueryResults<Member> result = queryFactory
+                .selectFrom(member)
+                .orderBy(member.username.desc())
+                .offset(1) //0부터 시작이므로 1로 설정하면 1개를 건너뛴것것
+                .limit(2)
+                .fetchResults();
+
+        assertThat(result.getTotal()).isEqualTo(4);
+        assertThat(result.getLimit()).isEqualTo(2);
+        assertThat(result.getOffset()).isEqualTo(1);
+        assertThat(result.getResults().size()).isEqualTo(2);
     }
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
