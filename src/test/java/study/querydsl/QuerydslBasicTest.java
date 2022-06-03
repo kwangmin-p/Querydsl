@@ -60,8 +60,11 @@ public class QuerydslBasicTest {
     @Test
     public void startQuerydsl(){
 //        JPAQueryFactory queryFactory = new JPAQueryFactory(em);
-        QMember m = new QMember("m");
-        Member findMember = queryFactory
+//        QMember m = new QMember("m"); //직접 별칭 만들어 사용
+
+        QMember m = QMember.member; //Q 타입의 기본 멤버 사용. static 선언되어있으므로 static import도 가능. static import 하여 QMember m 선언도 필요없어지고, QMember.member -> member로 변경되어 코드 간략해짐
+
+       Member findMember = queryFactory
                 .select(m)
                 .from(m)
                 .where(m.username.eq("member1")) //파라미터 바인딩
