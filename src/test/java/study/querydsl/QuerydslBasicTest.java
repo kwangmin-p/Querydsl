@@ -14,6 +14,8 @@ import study.querydsl.entity.Team;
 import javax.persistence.EntityManager;
 import javax.persistence.PersistenceContext;
 
+import static study.querydsl.entity.QMember.member;
+
 @SpringBootTest
 @Transactional
 public class QuerydslBasicTest {
@@ -62,13 +64,41 @@ public class QuerydslBasicTest {
 //        JPAQueryFactory queryFactory = new JPAQueryFactory(em);
 //        QMember m = new QMember("m"); //직접 별칭 만들어 사용
 
-        QMember m = QMember.member; //Q 타입의 기본 멤버 사용. static 선언되어있으므로 static import도 가능. static import 하여 QMember m 선언도 필요없어지고, QMember.member -> member로 변경되어 코드 간략해짐
+        QMember m = member; //Q 타입의 기본 멤버 사용. static 선언되어있으므로 static import도 가능. static import 하여 QMember m 선언도 필요없어지고, QMember.member -> member로 변경되어 코드 간략해짐
 
        Member findMember = queryFactory
                 .select(m)
                 .from(m)
                 .where(m.username.eq("member1")) //파라미터 바인딩
                 .fetchOne();
+        Assertions.assertThat(findMember.getUsername()).isEqualTo("member1");
+    }
+
+    @Test
+    public void search(){
+        Member findMember = queryFactory
+                .select(member)
+                .from(member)
+                .where(
+                        member.username.eq("member1") //and의 chain 형식
+                                .and(member.age.eq(10)) //마찬가지로 or 도 가능
+                )
+                .fetchOne();
+
+        Assertions.assertThat(findMember.getUsername()).isEqualTo("member1");
+    }
+
+    @Test
+    public void searchAndParam(){
+        Member findMember = queryFactory
+                .select(member)
+                .from(member)
+                .where( //and는 chain형식을 유지하지않고 , 로 여러 파라미터를 받을 수 있음
+                        member.username.eq("member1"),
+                        member.age.eq(10) //마찬가지로 or 도 가능
+                )
+                .fetchOne();
+
         Assertions.assertThat(findMember.getUsername()).isEqualTo("member1");
     }
 }
