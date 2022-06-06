@@ -14,7 +14,9 @@ import study.querydsl.entity.QMember;
 import study.querydsl.entity.Team;
 
 import javax.persistence.EntityManager;
+import javax.persistence.EntityManagerFactory;
 import javax.persistence.PersistenceContext;
+import javax.persistence.PersistenceUnit;
 
 import java.util.List;
 
@@ -305,6 +307,40 @@ public class QuerydslBasicTest {
         for(Tuple tuple: result){
             System.out.println("tuple = "+ tuple);
         }
+    }
+
+    @PersistenceUnit
+    EntityManagerFactory emf;
+
+    @Test
+    public void fetchJoinNo(){
+        em.flush();
+        em.clear();
+
+        Member findMember = queryFactory
+                .selectFrom(member)
+                .where(member.username.eq("member1"))
+                .fetchOne(); //member와 team은 LAZY 설정이므로 team이 조회되지 않는다
+
+        boolean loaded = emf.getPersistenceUnitUtil().isLoaded(findMember.getTeam());//member의 team이 로딩된상태인지 아직 로딩안된상태인지 확인
+
+        assertThat(loaded).as("페치 조인 미적용").isFalse(); // Lazy상태에 fetch join을 안했으므로 False가 나와야함
+    }
+
+    @Test
+    public void fetchJoinUse(){
+        em.flush();
+        em.clear();
+
+        Member findMember = queryFactory
+                .selectFrom(member)
+                .join(member.team, team).fetchJoin() // 그냥 join이랑 같은데 뒤에 fetchJoin()만 붙여주면된다.
+                .where(member.username.eq("member1"))
+                .fetchOne(); //member와 team은 LAZY 설정이지만 fetch조인했으므로 team이 조회된다
+
+        boolean loaded = emf.getPersistenceUnitUtil().isLoaded(findMember.getTeam());//member의 team이 로딩된상태인지 아직 로딩안된상태인지 확인
+
+        assertThat(loaded).as("페치 조인 미적용").isTrue(); // Lazy상태에 fetch join을 했으므로 True가 나와야함
     }
 }
 
