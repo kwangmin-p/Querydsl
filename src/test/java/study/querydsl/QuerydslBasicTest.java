@@ -3,6 +3,7 @@ package study.querydsl;
 import com.querydsl.core.QueryResults;
 import com.querydsl.core.Tuple;
 import com.querydsl.core.types.dsl.CaseBuilder;
+import com.querydsl.core.types.dsl.Expressions;
 import com.querydsl.jpa.JPAExpressions;
 import com.querydsl.jpa.impl.JPAQueryFactory;
 import org.assertj.core.api.Assertions;
@@ -434,6 +435,31 @@ public class QuerydslBasicTest {
                         .otherwise("기타")
                 )
                 .from(member)
+                .fetch();
+
+        for (String s : result) {
+            System.out.println("s = "+s);
+        }
+    }
+
+    @Test
+    public void constant(){
+        List<Tuple> result = queryFactory
+                .select(member.username, Expressions.constant("A")) //실제 쿼리상에서는 A가 나가지않고 어플리케이션단에서 만들어짐
+                .from(member)
+                .fetch();
+
+        for (Tuple tuple : result) {
+            System.out.println("tuple = "+tuple);
+        }
+    }
+
+    @Test
+    public void concat(){
+        List<String> result = queryFactory
+                .select(member.username.concat("_").concat(member.age.stringValue()))
+                .from(member)
+                .where(member.username.eq("member1"))
                 .fetch();
 
         for (String s : result) {
