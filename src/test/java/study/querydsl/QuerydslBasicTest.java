@@ -15,6 +15,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.transaction.annotation.Transactional;
 import study.querydsl.dto.MemberDto;
+import study.querydsl.dto.QMemberDto;
 import study.querydsl.dto.UserDto;
 import study.querydsl.entity.Member;
 import study.querydsl.entity.QMember;
@@ -598,7 +599,30 @@ public class QuerydslBasicTest {
         }
     }
 
+//    위의 constructor방식은 생성자가 있는지 체크하지 못해 runtime에야 오류를 발견할 수 있지만
+//    QueryProjection은 Q-Type에 생성자를 만들어두고 사용하므로 컴파일 시점에 오류를 발견할 수 있다.
+//    but. 단점1. Q file을 만들어야한다.
+//    단점2. 기존에는 DTO가 QueryDsl에 대한 의존성이 없었는데 DTO에 @QueryProjection을 넣음으로써 DTO에도 querydsl 의존성이 생겨버린다.
+//    보통 DTO는 API로 반환하기도하고 service, controller에서도 쓰므로 querydsl의 의존성이 커져버린다.
+    @Test
+    public void findDtoByQueryProjection(){
+        List<MemberDto> result = queryFactory
+                .select(new QMemberDto(member.username, member.age))
+                .from(member)
+                .fetch();
+        for (MemberDto memberDto : result) {
+            System.out.println("memberDto = " + memberDto);
+        }
+    }
 
+    @Test
+    public void selectDistinct(){
+        queryFactory
+                .select(member.username)
+                .distinct()
+                .from(member)
+                .fetch();
+    }
 }
 
 
