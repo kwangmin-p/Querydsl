@@ -1,5 +1,6 @@
 package study.querydsl;
 
+import com.querydsl.core.BooleanBuilder;
 import com.querydsl.core.QueryResults;
 import com.querydsl.core.Tuple;
 import com.querydsl.core.types.ExpressionUtils;
@@ -623,8 +624,36 @@ public class QuerydslBasicTest {
                 .from(member)
                 .fetch();
     }
-}
 
+//    동적 쿼리를 해결하기 위한 두가지 방식
+//    1. BooleanBuilder
+//    2. Where 다중 파라미터 사용
+    @Test
+    public void dynamicQuery_BooleanBuilder(){
+        String usernameParam = "member1";
+        Integer ageParam = 10;
+
+        List<Member> result = searchMember1(usernameParam, ageParam);
+        assertThat(result.size()).isEqualTo(1);
+    }
+
+    private List<Member> searchMember1(String usernameCond, Integer ageCond) {
+//        BooleanBuilder를 사용한 동적 쿼리
+        BooleanBuilder builder = new BooleanBuilder();
+        if(usernameCond != null){
+//            builder는 and, or 를 조립할 수 있다. 아래는 and 사용
+            builder.and(member.username.eq(usernameCond));
+        }
+        if(ageCond != null){
+            builder.and(member.age.eq(ageCond));
+        } 
+
+        return queryFactory
+                .selectFrom(member)
+                .where(builder)
+                .fetch();
+    }
+}
 
 
 
