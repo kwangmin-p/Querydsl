@@ -4,7 +4,9 @@ import com.querydsl.core.BooleanBuilder;
 import com.querydsl.core.QueryResults;
 import com.querydsl.core.Tuple;
 import com.querydsl.core.types.ExpressionUtils;
+import com.querydsl.core.types.Predicate;
 import com.querydsl.core.types.Projections;
+import com.querydsl.core.types.dsl.BooleanExpression;
 import com.querydsl.core.types.dsl.CaseBuilder;
 import com.querydsl.core.types.dsl.Expressions;
 import com.querydsl.jpa.JPAExpressions;
@@ -646,13 +648,46 @@ public class QuerydslBasicTest {
         }
         if(ageCond != null){
             builder.and(member.age.eq(ageCond));
-        } 
+        }
 
         return queryFactory
                 .selectFrom(member)
                 .where(builder)
                 .fetch();
     }
+
+    @Test
+    public void dynamicQueryWhereParam(){
+        String usernameParam = "member1";
+        Integer ageParam = 10;
+
+        List<Member> result = searchMember2(usernameParam, ageParam);
+        assertThat(result.size()).isEqualTo(1);
+    }
+
+    private List<Member> searchMember2(String usernameCond, Integer ageCond) {
+
+        return queryFactory
+                .selectFrom(member)
+//                .where(usernameEq(usernameCond), ageEq(ageCond)) //method를 생성. where안의 인자가 null이면 무시된다. where에 , 로 구분할 경우 and 처리된다.
+                .where(allEq(usernameCond, ageCond))
+                .fetch();
+    }
+
+    private BooleanExpression usernameEq(String usernameCond) {
+        return usernameCond != null ? member.username.eq(usernameCond) : null;
+    }
+
+    private BooleanExpression ageEq(Integer ageCond) { //Predicate 대신 BooleanExpression 로 형변환 리턴하면 밑에 예시에서 and 까지 가능. 기존 Predicate 역할도 가능.
+        return ageCond != null ? member.age.eq(ageCond) : null;
+    }
+
+//    위 조건을 함수로 뺐을때의 장점1. 조합이 가능. 대신 함수의 리턴형을 Predicate -> BooleanExpression으로 변경 필요
+//    장점2. 함수 재활용 가능.
+    private BooleanExpression allEq(String usernameCod, Integer ageCond){
+        return usernameEq(usernameCod).and(ageEq(ageCond));
+    }
+
 }
 
 
