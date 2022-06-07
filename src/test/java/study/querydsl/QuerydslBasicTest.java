@@ -466,8 +466,39 @@ public class QuerydslBasicTest {
             System.out.println("s = "+s);
         }
     }
-}
 
+//    프로젝션 : select 대상 지정
+//    프로젝션 대상이 하나인 경우 타입을 명확하게 지정가능 List<T>
+//    프로젝션 대상이 둘 이상이면 튜플이나 DTO로 조회
+
+    @Test
+    public void simpleProjection(){
+        List<String> result = queryFactory
+                .select(member.username)
+                .from(member)
+                .fetch();
+        for (String s : result) {
+            System.out.println("s = " + s);
+        }
+    }
+
+    @Test
+    public void tupleProjection(){
+        List<Tuple> result = queryFactory
+                .select(member.username, member.age)
+                .from(member)
+                .fetch(); //반환타입이 Tuple
+//         주의. import문을 보면 위에 사용된 Tuple은 querydsl 에 종속적이므로 querydsl.tuple은 repository 레벨에서만 사용하고
+//        service로 리턴할 때는 DTO 로 변환시켜 return 하는 것을 권장한다.
+
+        for (Tuple tuple : result) {
+            String username = tuple.get(member.username);
+            Integer age = tuple.get(member.age);
+            System.out.println("username = " + username);
+            System.out.println("age = " + age);
+        }
+    }
+}
 
 
 
