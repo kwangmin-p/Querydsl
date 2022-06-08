@@ -741,6 +741,35 @@ public class QuerydslBasicTest {
                 .where(member.age.gt(18))
                 .execute();
     }
+
+//    SQL Function
+    @Test
+    public void sqlFunction(){
+        List<String> result = queryFactory
+                .select(Expressions.stringTemplate(
+                        "function('replace', {0}, {1}, {2})",
+                        member.username, "member", "M"))
+                .from(member)
+                .fetch();
+
+        for (String s : result) {
+            System.out.println("s = " + s);
+        }
+    }
+
+    @Test
+    public void sqlFunction2(){
+        List<String> result = queryFactory
+                .select(member.username)
+                .from(member)
+//                .where(member.username.eq(Expressions.stringTemplate(
+//                        "function('lower', {0})", member.username))) // sql function 호출 방법
+                .where(member.username.eq(member.username.lower())) // ansi 표준은 querydsl 에 내장되어있어서, querydsl 내장 함수로도 가능.
+               .fetch();
+        for (String s : result) {
+            System.out.println("s = "+s);
+        }
+    }
 }
 
 
