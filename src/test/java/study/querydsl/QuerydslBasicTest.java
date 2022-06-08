@@ -688,6 +688,59 @@ public class QuerydslBasicTest {
         return usernameEq(usernameCod).and(ageEq(ageCond));
     }
 
+    @Test
+    public void bulkUpdate(){
+//        초기상태
+//        member1 = 10 -> 영속성컨텍스트 : member1 , DB : member1
+//        member2 = 20 -> 영속성컨텍스트 : member2 , DB : member2
+//        member3 = 30 -> 영속성컨텍스트 : member3 , DB : member3
+//        member4 = 40 -> 영속성컨텍스트 : member4 , DB : member4
+
+//        변경후
+//        member1 = 10 -> 영속성컨텍스트 : member1 , DB : 비회원
+//        member2 = 20 -> 영속성컨텍스트 : member2 , DB : 비회원
+//        member3 = 30 -> 영속성컨텍스트 : member3 , DB : member3
+//        member4 = 40 -> 영속성컨텍스트 : member4 , DB : member4
+
+//        !! 벌크 연산시 주의사항
+//        벌크 연산은 영속성 컨텍스트를 거치지 않고 바로 쿼리를 날리기 때문에
+//        member1, member2는 비회원으로 바꼈음에도 영속성 컨텍스트에는 member1, member2 로 남아있게 된다
+        long count = queryFactory
+                .update(member)
+                .set(member.username, "비회원")
+                .where(member.age.lt(28))
+                .execute();
+
+
+        List<Member> result = queryFactory
+                .selectFrom(member)
+                .fetch();
+//        쿼리는 select 쿼리가 네 건을 가져오도록 잘 처리된다
+//        하지만 영속성 컨텍스트와 db의 결과가 다른데, 이때 영속성 컨텍스트가 우선권을 가진다.
+//        따라서 result의 결과가 디비 결과가 맞지 않는다.
+
+//        해결방법:
+//        벌크연산 execute 후 em.flush(); em.clear(); 를 실행하여 영속성 컨텍스트를 초기화시킨다.
+        for (Member member1 : result) {
+            System.out.println("member1 = "+member1);
+        }
+    }
+
+    @Test
+    public void bulkAdd(){
+        long count = queryFactory
+                .update(member)
+                .set(member.age, member.age.add(1)) // member.age.multiply(2)
+                .execute();
+    }
+
+    @Test
+    public void bulkDelete(){
+        long count = queryFactory
+                .delete(member)
+                .where(member.age.gt(18))
+                .execute();
+    }
 }
 
 
