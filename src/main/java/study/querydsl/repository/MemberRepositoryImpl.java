@@ -2,17 +2,20 @@ package study.querydsl.repository;
 
 import com.querydsl.core.QueryResults;
 import com.querydsl.core.types.dsl.BooleanExpression;
+import com.querydsl.jpa.JPQLQuery;
 import com.querydsl.jpa.impl.JPAQuery;
 import com.querydsl.jpa.impl.JPAQueryFactory;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.repository.support.QuerydslRepositorySupport;
 import org.springframework.data.support.PageableExecutionUtils;
 import study.querydsl.dto.MemberSearchCondition;
 import study.querydsl.dto.MemberTeamDto;
 import study.querydsl.dto.QMemberTeamDto;
 import study.querydsl.entity.Member;
 
+import javax.persistence.EntityManager;
 import java.util.List;
 
 import static org.springframework.util.StringUtils.hasText;
@@ -20,17 +23,46 @@ import static study.querydsl.entity.QMember.member;
 import static study.querydsl.entity.QTeam.team;
 
 //MemberRepository에 적용할 것이기 떄문에 이름을 꼭 MemberRepositoryImpl로 지어야한다. MemberRepositoryCustom은 아무거나 상관없음.
-public class MemberRepositoryImpl implements MemberRepositoryCustom{
+//Querydsl 기능의 손쉬운 사용을 위해 QuerydslRepositorySupport 를 extends 함.
+public class MemberRepositoryImpl extends QuerydslRepositorySupport implements MemberRepositoryCustom{
+//public class MemberRepositoryImpl implements MemberRepositoryCustom{
 
+//    QuerydslRepositorySupport 상속으로 주석처리.
     private final JPAQueryFactory queryFactory;
 
 //    todo. 오류 발생할 경우 EntityManger em 으로 주입.
-    public MemberRepositoryImpl(JPAQueryFactory queryFactory) {
-        this.queryFactory = queryFactory;
+    public MemberRepositoryImpl() {
+        super(Member.class);
+        this.queryFactory = new JPAQueryFactory(getEntityManager());
     }
+
+//    QuerydslRepositorySupport 상속. QuerydslRepositorySupport 는 추상클래스이므로 init.
+//    public MemberRepositoryImpl() {
+//        super(Member.class);
+//    }
 
     @Override
     public List<MemberTeamDto> searchByWhereParam(MemberSearchCondition condition) {
+//        QuerydslRepositorySupport 상속 활용
+//        List<MemberTeamDto> result = from(member) // querydsl은 3버전에서는 select가 아닌 from부터 시작했다, QuerydslRepositorySupport 가 3버전에 만들어져서 select가 뒤에 오고 from이 먼저온다.
+//                .leftJoin(member.team, team)
+//                .where(
+//                        usernameEq(condition.getUsername()),
+//                        teamNameEq(condition.getTeamName()),
+//                        ageGoe(condition.getAgeGoe()),
+//                        ageLoe(condition.getAgeLoe())
+//                )
+//                .select(new QMemberTeamDto(
+//                        member.id.as("memberId"),
+//                        member.username,
+//                        member.age,
+//                        member.id.as("teamId"),
+//                        team.name.as("teamName")
+//                ))
+//                .fetch();
+
+
+//        QuerydslRepositorySupport 상속으로 인해 queryFactory 주석처리.
         return queryFactory
                 .select(new QMemberTeamDto(
                         member.id.as("memberId"),
@@ -77,6 +109,34 @@ public class MemberRepositoryImpl implements MemberRepositoryCustom{
         long total = results.getTotal();
 
         return new PageImpl<>(content, pageable, total);
+    }
+
+//    QuerydslRepositorySupport 활용하여 페이징 간편화
+    public Page<MemberTeamDto> searchPageSimpleWithQuerydslRepositorySupport(MemberSearchCondition condition, Pageable pageable) {
+        JPQLQuery<MemberTeamDto> jpqlQuery = from(member)
+                .leftJoin(member.team, team)
+                .where(
+                        usernameEq(condition.getUsername()),
+                        teamNameEq(condition.getTeamName()),
+                        ageGoe(condition.getAgeGoe()),
+                        ageLoe(condition.getAgeLoe())
+                )
+                .select(new QMemberTeamDto(
+                        member.id.as("memberId"),
+                        member.username,
+                        member.age,
+                        member.id.as("teamId"),
+                        team.name.as("teamName")
+                ));
+
+//        QuerydslRepositorySupport 활용하여 페이징 간편화
+        JPQLQuery<MemberTeamDto> query = getQuerydsl().applyPagination(pageable, jpqlQuery);
+        List<MemberTeamDto> results = query.fetch();
+
+//        단점.
+//        1. sort가 동작하지않음(버그). -> 직접 처리해야한다.
+//        2. select로 시작할 수 없다.
+        return new PageImpl<>(results, pageable, results.size());
     }
 
     @Override
