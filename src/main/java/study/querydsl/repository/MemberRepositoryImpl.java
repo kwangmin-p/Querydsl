@@ -2,10 +2,12 @@ package study.querydsl.repository;
 
 import com.querydsl.core.QueryResults;
 import com.querydsl.core.types.dsl.BooleanExpression;
+import com.querydsl.jpa.impl.JPAQuery;
 import com.querydsl.jpa.impl.JPAQueryFactory;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.support.PageableExecutionUtils;
 import study.querydsl.dto.MemberSearchCondition;
 import study.querydsl.dto.MemberTeamDto;
 import study.querydsl.dto.QMemberTeamDto;
@@ -118,6 +120,51 @@ public class MemberRepositoryImpl implements MemberRepositoryCustom{
 //        반대로 count 쿼리를 먼저 실행하고 count > 0 이어야 content query를 발행하는 등의 성능 개선이 가능하다
 
         return new PageImpl<>(content, pageable, total);
+    }
+
+//    count query 생략 가능한 경우
+//    1. 페이지 시작이면서 컨텐츠 사이즈가 페이지 사이즈보다 작을 경우
+//    2, 페이지 마지막일때. (offset + 컨텐츠 사이즈를 더해서 전체 사이즈를 구함)
+    @Override
+    public Page<MemberTeamDto> searchPageCountOptimization(MemberSearchCondition condition, Pageable pageable) {
+    //        content용 쿼리
+        List<MemberTeamDto> content = queryFactory
+                .select(new QMemberTeamDto(
+                        member.id.as("memberId"),
+                        member.username,
+                        member.age,
+                        member.id.as("teamId"),
+                        team.name.as("teamName")
+                ))
+                .from(member)
+                .leftJoin(member.team, team)
+                .where(
+                        usernameEq(condition.getUsername()),
+                        teamNameEq(condition.getTeamName()),
+                        ageGoe(condition.getAgeGoe()),
+                        ageLoe(condition.getAgeLoe())
+                )
+                .offset(pageable.getOffset())
+                .limit(pageable.getPageSize())
+                .fetch();
+
+    //        count 용 쿼리
+        JPAQuery<Member> countQuery = queryFactory.select(member)
+                .from(member)
+                .leftJoin(member.team, team)
+                .where(
+                        usernameEq(condition.getUsername()),
+                        teamNameEq(condition.getTeamName()),
+                        ageGoe(condition.getAgeGoe()),
+                        ageLoe(condition.getAgeLoe())
+                );
+
+//        countQuery는 아직 쿼리 실행 전. countQuery.fetchCount() 해야 쿼리가 날아간다.
+//        PageableExecutionUtils.getPage 는 content 사이즈와 page사이즈를 비교하고, 이때 첫 페이지거나 마지막 페이지면
+//        countQuery.fetchCount() 를 호출하지 않아 count 쿼리 발행하지 않음으로써 쿼리 최적화가 가능하다.
+//        들어가보면 특정 조건일때만 return new PageImpl<>(content, pageable, totalSupplier.getAsLong()) 을 호출하는 것을 확인할 수 있다.
+        return PageableExecutionUtils.getPage(content, pageable, countQuery::fetchCount);
+//        return PageableExecutionUtils.getPage(content, pageable, () -> countQuery.fetchCount()); //위 아래 두개 같은 표현
     }
 
     private BooleanExpression usernameEq(String username) {
